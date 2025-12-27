@@ -1,0 +1,363 @@
+---
+title: "Visualizations Sample"
+format: html
+editor: visual
+---
+
+Sample 1: Bar Chart
+
+```{r}
+
+library(tidyverse)
+venezuela <- read_csv("https://www.dropbox.com/scl/fi/6k0rgp4h504f9s06vanl3/RESULTADOS_2024_CSV_V2.csv?rlkey=tkcbyqja4bk0cka6uh7cqfgcy&dl=1")
+head(venezuela)
+view(venezuela)
+# Your code here:
+sum(venezuela$VOTOS_VALIDOS, na.rm = TRUE)
+# Your code here:
+venezuela <- venezuela |>
+  mutate(Other = rowSums(across(LM:BERA))) |>
+  relocate(Other, .before = URL)
+view(venezuela)
+
+# percentage won by Gonzalez = 67.0828
+sum(venezuela$EG)/10887262*100
+
+# percentage won by Maduro = 30.45892
+sum(venezuela$NM)/10887262*100
+
+# percentage won by others in total = 2.458286
+sum(venezuela$Other)/10887262*100
+
+sum(venezuela$NM)
+# Your Code Here
+# In the first step I created the "gap" variable. 
+venezuela_summary <- venezuela |>
+  group_by(EDO) |>
+  summarise(
+    state_total = sum(VOTOS_VALIDOS, na.rm = TRUE),
+    EG_total = sum(EG, na.rm = TRUE),
+    NM_total = sum(NM, na.rm = TRUE),
+  ) |>
+  mutate(gap = (EG_total - NM_total)/state_total*100)
+
+# Then I made a table as a beginner-friendly format, which I then used to plot the graph.
+
+venezuela_table <- venezuela_summary |>
+   arrange(desc(gap))|>
+  relocate(gap, .before = state_total)
+head(venezuela_table)
+
+venezuela_graph1 <- venezuela_table |>
+  ggplot() +
+  aes(x = reorder(EDO, gap), y = gap) +
+  geom_col()+
+  coord_flip() +
+  labs ( title = "Presidential Election Results in Venezuela in 2024",
+         x = "State",
+         y = "Percentage Gap between Votes for E. Gonzales vs N. Maduro",
+         caption = "Based on 83% of ballots records") 
+venezuela_graph1
+
+# Your code here:
+barinas <- venezuela |>
+  filter(EDO == "EDO. BARINAS") |>
+  mutate(GW = if_else(EG>NM, TRUE, FALSE))  |>
+  relocate(GW, .before = LM)
+
+barinas1 <- barinas |>
+  filter(GW == TRUE) 
+
+centers_total <- n_distinct(barinas$CENTRO) #612 voting centers in total
+centers_won <- n_distinct(barinas1$CENTRO) #546 voting centers 
+
+gonzalez_won_barinas <- centers_won/centers_total *100 
+view(gonzalez_won_barinas)
+# Gonzalez won in 89.2% of the voting centers in Barinas
+venezuela_rural <- venezuela |>
+  mutate(URBAN = if_else(EDO %in% c("DTTO. CAPITAL", "EDO. MIRANDA", "EDO. ZULIA","EDO. CARABOBO", "EDO. LARA", "EDO. ANZOATEGUI", "EDO. ARAGUA","EDO. BOLIVAR", "EDO. MONAGAS", "EDO. SUCRE", "EDO. MERIDA", "EDO. TACHIRA", "EDO. PORTUGUESA", "EDO. FALCON"),
+                         "URBAN", "RURAL")) |>
+  relocate(URBAN, .before = COD_MUN)
+
+venezuela_rural <- venezuela_rural |>
+  mutate(Maduro_won = if_else(NM>EG, "TRUE", "FAlSE")) |>
+  relocate(Maduro_won, .before = COD_MUN)
+
+venezuela_rural <- venezuela_rural |>
+  filter(URBAN == "RURAL")
+
+n_distinct(venezuela_rural$EDO) #There are 10 rural states in the data set
+
+venezuela_rural_only <- venezuela_rural |>
+  summarize(
+    n_rows = n(),
+    maduro_rural = sum(Maduro_won == "TRUE", na.rm = TRUE),
+    maduro_votes_rural = n()/sum(Maduro_won == "TRUE", na.rm = TRUE)
+    )
+
+# There are 5394 parishes in the rural states and Maduro won in 892 of them, which brings his victory rate to a rough approximnate of 6.04%
+  
+# Your code here:
+
+N <- 10058774
+S <- 1e8
+A <- round(N*runif(S, 0.30, 0.70))
+C <- round(N*runif(S, 0.01, 0.10))
+B <- N - A - C
+A_round <- round(round(A/N, 3)*N)
+B_round <- round(round(B/N, 3)*N)
+C_round <- round(round(C/N, 3)*N)
+sum(A_round==A & B_round==B & C_round==C)
+```
+
+Sample 2
+
+```{r}
+
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(options(width = 60))
+knitr::opts_chunk$set(class.output = "bg-warning")
+
+packages <- c('haven','dplyr', 'ggplot2', 'reshape2', 'tidyverse', 'pracma',
+              'lubridate', 'scales', 'ggthemes', 'gt', 'dineq', 'gglorenz')  
+to_install <- packages[!(packages %in% installed.packages()[,"Package"])]
+if(length(to_install)>0) install.packages(to_install, 
+                                          repos='http://cran.us.r-project.org')
+lapply(packages, require, character.only=TRUE)
+
+
+#Import data 
+url <- "https://www.dropbox.com/scl/fi/8rdnb313lfha0c0vxyy1r/taiwan_election_2024_pollingstation.csv?rlkey=okgvk39f7ymjkt7hk0taoqieh&st=ybleflc6&dl=1"
+tmp <- tempfile(fileext = ".csv")
+download.file(url, tmp, mode = "wb")
+tai <- read.csv(tmp)
+library(readr)
+taiwan_election_2024_pollingstation <- read_csv("/Users/leilasagymbayeva/Desktop/1 Semester/API 209//Problem Sets/PSet 2/3 - to post ps2/taiwan_election_2024_pollingstation.csv")
+# Insert only code here.
+#a Proportion of votes won
+  p_DPP <- sum(taiwan_election_2024_pollingstation$votes_dpp_lai_hsiao)/sum(taiwan_election_2024_pollingstation$valid_votes)
+#b Standard deviation of proportion of votes won across polling stations
+station_share <- 100*(taiwan_election_2024_pollingstation$votes_dpp_lai_hsiao/taiwan_election_2024_pollingstation$valid_votes)
+sd_DPP_pop <- sd(station_share)
+
+# For the question b I used AI to help me understand the difference of standard deviation across individual votes and across polling stations. I initially used the formula sqrt(p*(1-p)), but that gave me a value inconsistent with sampling SD calculated in subsequent questions.
+# Insert only code here.
+#2
+set.seed(1996)
+sample5 <- slice_sample(taiwan_election_2024_pollingstation, n=5)
+#a
+choose(17795,5)
+#b
+p_DPP_sample5 <- sum(sample5$votes_dpp_lai_hsiao)/sum(sample5$valid_votes) # 0.43
+#c
+p_TPP_sample5 <- sum(sample5$votes_tpp_ko_wu)/sum(sample5$valid_votes) # 0.24
+p_KMT_sample5 <- sum(sample5$votes_kmt_hou_jaw)/sum(sample5$valid_votes) # 0.33
+# Insert only code here.
+#3
+set.seed(1996)
+sample100 <- slice_sample(taiwan_election_2024_pollingstation, n=100)
+#a
+choose(17795,100)
+#b
+p_DPP_sample100 <- sum(sample100$votes_dpp_lai_hsiao)/sum(sample100$valid_votes) # 0.39
+#c
+p_TPP_sample100 <- sum(sample100$votes_tpp_ko_wu)/sum(sample100$valid_votes) # 0.26
+p_KMT_sample100 <- sum(sample100$votes_kmt_hou_jaw)/sum(sample100$valid_votes) # 0.34
+# Insert only code here.
+p_DPP - p_DPP_sample5 # sample estimate deviates by 0.031
+p_DPP - p_DPP_sample100 # sample estimate deviates by 0.006
+
+
+#For-loop code 
+xbar_5 <- c() 
+win_5 <- c()
+set.seed(123)
+for (i in 1:1000) {
+  samp_5 <- slice_sample(taiwan_election_2024_pollingstation, n = 5) 
+  xbar_5[i] <- 100*(sum(samp_5$votes_dpp_lai_hsiao) / sum(samp_5$valid_votes))
+  win_5[i] <- (sum(samp_5$votes_dpp_lai_hsiao) > sum(samp_5$votes_tpp_ko_wu) &
+               sum(samp_5$votes_dpp_lai_hsiao) > sum(samp_5$votes_kmt_hou_jaw))
+}
+mean(xbar_5) #average vote share of DPP in 100 samples of 5
+sd(xbar_5) #standard deviation of DPP vote share in 1000 samples of size 5 = 4.147%
+sum(win_5 == "FALSE") # Lai Ching-te lost 185 times out of 1000 times/samples.
+
+# Insert only code here.
+xbar_100 <- c() 
+win_100 <- c()
+set.seed(123)
+for (i in 1:1000) {
+  samp_100 <- slice_sample(taiwan_election_2024_pollingstation, n = 100) 
+  xbar_100[i] <- 100*(sum(samp_100$votes_dpp_lai_hsiao) / sum(samp_100$valid_votes))
+  win_100[i] <- (sum(samp_100$votes_dpp_lai_hsiao) > sum(samp_100$votes_tpp_ko_wu) &
+               sum(samp_100$votes_dpp_lai_hsiao) > sum(samp_100$votes_kmt_hou_jaw))
+}
+mu100 <- mean(xbar_100) #average vote share of DPP in 1000 samples of 100 = 40.0503%
+xbar_100 <- unlist(xbar_100, use.names = FALSE)
+sd(xbar_100) #standard deviation of DPP vote share in 1000 samples of size 100 = 0.9323102
+se100 <- sd(xbar_100, na.rm = TRUE)
+sum(win_100 == "FALSE") # Lai Ching-te lost 0 times out of 1000 times/samples.
+
+# Insert only code here.
+xbar_5 <- tibble(val = xbar_5) # histogram in ggplot would not produce a histogram from a vector, only from a data ftrame or a tibble
+
+xbar_5 %>% 
+  ggplot(aes(x = val, y = stat(width*density))) +
+  geom_histogram(color = "white", bins = 30) +
+  labs(x = "DPP Vote Share Proportion Estimates",
+       y = "Proportion") +
+  scale_y_continuous(labels = percent) + 
+  theme_clean()
+
+xbar_100 <- tibble(val = xbar_100) 
+
+xbar_100 %>% 
+  ggplot(aes(x = val, y = stat(width*density))) +
+  geom_histogram(color = "white", bins = 30) +
+  labs(x = "DPP Vote Share Proportion Estimates",
+       y = "Proportion") +
+  scale_y_continuous(labels = percent) + 
+  theme_clean()
+
+# Insert only code here.
+xbar_100 <- unlist(xbar_100)
+x_lb <- xbar_100 - 1.64*se100        
+x_ub <- xbar_100 + 1.64*se100        
+samp_ci <- tibble(x_lb, x_ub)
+samp_ci <- samp_ci |>
+  mutate(true_p = if_else(x_lb<=40 & x_ub>=40, TRUE, FALSE))
+true_n <- filter(samp_ci, true_p == "TRUE")
+nrow(true_n) 
+
+class(xbar_100)
+# Feel free to calculate by R or hand
+
+#H_o: proportion of 7 being the last digit is equal to 10%
+# Estimate = 17.24%
+# Shape: approx. normal
+# Mean: p = 0.10
+# Standard deviation = 0.0278543
+sd <- sqrt((0.10*0.90)/116)
+
+# (1) Method of the estimator sampling distribution
+p_sample <- 0.1724
+p_norm <- pnorm(0.0276, 0.10, sd)
+p_value <- 2*p_norm
+print(p_value)
+# P-value is equal to 0.00934, which is less than 0.05 and 0.01, so we can reject the null hypothesis both at 5% and 1% alpha.
+
+# (2) Method using the Test Statistic
+z <- (p_sample - 0.10)/sd
+print(z)
+# Test Statistic is equal to 2.599 which is greater than 1.96 and 2.58. Therefore, we can reject the null hypothesis at both 95% and 99% confidence levels.
+```
+
+Sample 3
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(options(width = 60))
+knitr::opts_chunk$set(class.output = "bg-warning")
+
+packages <- c('haven','dplyr', 'ggplot2', 'reshape2', 'tidyverse', 'pracma',
+              'lubridate', 'scales', 'ggthemes', 'gt', 'dineq', 'gglorenz')  
+to_install <- packages[!(packages %in% installed.packages()[,"Package"])]
+if(length(to_install)>0) install.packages(to_install, 
+                                          repos='http://cran.us.r-project.org')
+lapply(packages, require, character.only=TRUE)
+
+
+# Enter only code here. No need to print out the table
+palms_clean <- read_csv("/Users/leilasagymbayeva/Desktop/1 Semester/API 209//Problem Sets/PSet 3/palms_clean.csv")
+palms_clean <- palms_clean |> 
+  mutate(
+    gender = factor(gender, levels = c(1, 2, 9), labels = c("Male", "Female", "Unspecified")),
+    popgroup = factor(popgroup, levels = c(1, 2, 3, 4, 5,9), labels = c("African/Black", "Coloured", "Indian/Asian", "White", "Other", "Unspecified")),
+    empstat1 = factor(empstat1, levels = c(1, 2, 0), labels = c("employed", "unemployed", "not economically active"))
+  )
+palms <- palms_clean |>
+  mutate(education = case_when(
+    yrseduc < 6 ~ "Primary",
+    yrseduc >=6 & yrseduc <=8 ~ "Lower Secondary",
+    yrseduc >=9 & yrseduc <=12 ~ "Upper Secondary",
+    yrseduc > 12 ~ "Bachelor or Above",
+  ))
+
+# Insert only code here.
+ur_race <- palms |>
+  filter(empstat1 %in% c("employed","unemployed")) |>
+  group_by(popgroup) |>
+  summarise(
+    n_lf     = n(),
+    n_unemp  = sum(empstat1 == "unemployed"),
+    unemp_rate = n_unemp / n_lf
+  ) |>
+  arrange(desc(unemp_rate))
+  
+ur_race |> 
+  ggplot()+
+  aes(x = popgroup, y = unemp_rate, fill = popgroup) +
+  geom_col(color = NA)+
+  labs (x = "Ethnic Group", y = "Unemployment Rate")+
+  theme_classic()
+
+
+# Insert only code here.
+ur_race_education <- palms |>
+  filter(empstat1 %in% c("employed","unemployed"), !is.na(education)) |>
+  group_by(popgroup, education) |>
+  summarise(
+    n_lf     = n(),
+    n_unemp  = sum(empstat1 == "unemployed"),
+    unemp_rate = n_unemp / n_lf
+  ) |>
+  arrange(desc(unemp_rate))
+
+ur_race_education |> 
+  ggplot()+
+  aes(x = popgroup, y = unemp_rate, fill = popgroup) +
+  geom_text(aes(label = percent(unemp_rate, accuracy = 0.1)),
+            vjust = -0.3, size = 3)+
+  geom_col(color = NA)+
+  labs (x = "Ethnic Group", y = "Unemployment Rate", fill = "Ethnic Group")+
+  facet_grid(~ education)+
+  theme_classic()+
+  theme(
+    axis.text.x  = element_blank(),   
+    axis.ticks.x = element_blank()    
+  )
+# Insert only code here.
+
+#0 Recode NAs as zeroes
+palms <- palms|>
+  mutate(imputed_real = replace_na(as.numeric(imputed_real), 0))
+#1 mu_w - mu_b = 5807.827
+mean(palms$imputed_real[palms$popgroup == "White"], na.rm = TRUE) -
+  mean(palms$imputed_real[palms$popgroup == "African/Black"], na.rm = TRUE)
+#2 sigma_w = 23943.573, sigma_b = 9569.209
+palms |>
+  filter(popgroup %in% c("White","African/Black")) |>
+  group_by(popgroup) |>
+  summarise(sigma = sqrt(mean((imputed_real - mean(imputed_real, na.rm = TRUE))^2, na.rm = TRUE)))
+#3 n_w = 7192, n_b = 56338
+n <- palms |>
+  filter(empstat1 == "employed",
+         popgroup %in% c("White","African/Black")) |>
+  count(popgroup)
+#4 sd = 285.1985
+sqrt(23943.573^2/7192 + 9569.209^2/56338)
+#5 z = 20.36416
+(5807.827 - 0)/285.1985
+#6 p-value = 3.477652e-92
+p_value <- 2 * pnorm(-abs(20.36416))
+print(p_value)
+#7 confidence interval = [5248.83794, 6366.81606]
+ci_left <- 5807.827 - 1.96*285.1985
+ci_right <- 5807.827 + 1.96*285.1985
+# Insert only code here.
+
+white <- with(palms, imputed_real[popgroup == "White"])
+black <- with(palms, imputed_real[popgroup == "African/Black"])
+
+t.test(white, black, var.equal = FALSE, alternative = "two.sided")
+```
