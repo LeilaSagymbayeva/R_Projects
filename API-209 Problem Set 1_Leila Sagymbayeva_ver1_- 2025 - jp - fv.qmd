@@ -1,0 +1,565 @@
+---
+title: "API-209 Problem Set #1"
+subtitle: " "
+date: September 11, 2025
+language: 
+  title-block-published: "Due Date"
+format: 
+  html: 
+    embed-resources: true
+---
+
+```{css, echo=FALSE}
+.answer-box {
+  background-color: LemonChiffon;
+}
+```
+
+## IDENTIFICATION
+
+1 - Your information
+
+```{text}
+Last Name: Sagymbayeva                              
+First Name: Leila
+```
+
+2 - Group Members (please list below the classmates you worked with on this problem set): 
+
+```{text}
+Group members: Shubhashree Jha, Carlos Cabaero
+```
+
+3 - Compliance with Harvard Kennedy School Academic Code: Do you certify that my work in this problem set complies with the Harvard Kennedy School Academic Code (mark with an X below)?
+
+```{text}
+                             [ X ] YES                [   ] NO
+```
+
+## INSTRUCTIONS
+
+1.  Render this file in your computer as it is right now. If it does not render correctly, address the rendering problem immediately. The teaching team will try to help you promptly. It will be much easier to identify what's causing the rendering problem(s) immediately after they occur. For this reason, render often (i.e., every time you finish a sub-question).
+
+2.  You will be asked to type your responses to this problem set in two types of boxes: text boxes (called "answer box") and code boxes (where you type and run your R code).
+
+3.  In an effort to assess the workload involved in this course, you will be asked to report on the time spent on each problem set question. Please record this time as you go along. We recommend using the timer on your smartphone (and pausing it every time you take a break).
+
+4.  If you are just learning to code and get stuck, try to figure out yourself with the techniques you learned in math camp. If you are still stuck, consult [these hints](https://docs.google.com/document/d/19SqgRxma7MErnzNkXigqrwfatrPhKPJmq_jsNvMfY4Q/edit?usp=sharing). To enable you to develop your coding skills, we strongly suggest you don't look at this document unless you are really stuck. In real life you won't have hints!
+
+5.  Before submitting, make sure you render your qmd file with your answers one last time. You will be asked to submit your qmd file and your html rendered file.
+
+\newpage
+
+## QUESTION 1 - Venezuelan Elections (2024) [^1]
+
+[^1]: This problem set question was developed jointly with José Ramón Morales, HKS MPA/ID and PhD graduate (and former API-209 TF!). He now is a faculty member at Tec Monterrey in Mexico. I am grateful to Alexa Gonzalez, Skye Yoden and Rony Rodriguez for their help in producing it.
+
+On July 28, 2024, Venezuela held a pivotal presidential election. This election was seen as a potential turning point for a country that has endured severe economic and political crises for many years. Venezuela’s GDP plummeted by 83% during the first seven years of Maduro’s administration. [^2] The Venezuelan economic decline from 2013 to 2019 was the world’s largest non-war-related collapse in at least 45 years. Additionally, nearly a quarter of the population emigrated in less than a decade.
+
+[^2]: Sources: https://www.imf.org/en/Publications/WEO/weo-database/2023/October/weo-report from https://en.wikipedia.org/wiki/Economy_of_Venezuela#cite_note-:14-21
+
+The main candidates in this election were Nicolás Maduro, the incumbent president, and Edmundo Gonzalez, who became the opposition candidate after María Corina Machado was banned from running by the Maduro administration, despite winning the opposition primaries by a landslide. Gonzalez and Machado campaigned closely together.
+
+On election night, the Consejo Nacional Electoral (CNE), Venezuela’s electoral authority, declared Maduro the winner with 51.2% of the vote. The opposition immediately declared fraud, citing copies of the “actas” (certificates printed by each voting machine at the end of the day) that they had collected through their extensive network of electoral witnesses.
+
+We will explore the fraud hypothesis later (in Part B), but for now, let’s focus on analyzing the data presented by the opposition, which contains actas that cover 83% of the votes cast that day. The dataset provides results at the level of the electoral “table” (mesa, in Spanish), which refers to a voting machine where people cast their votes. Each voting center may have more than one “table.” The key variables in the [data set](https://www.dropbox.com/scl/fi/6k0rgp4h504f9s06vanl3/RESULTADOS_2024_CSV_V2.csv?rlkey=tkcbyqja4bk0cka6uh7cqfgcy&dl=1) are:
+
+```         
+COD_EDO: State code
+EDO: State name
+COD_MUN: Municipality code
+MUN: Municipality name
+COD_PAR: Parish code
+PAR: Parish name
+CENTRO: Voting center code
+MESA: Voting table code
+VOTOS_VALIDOS: Valid votes
+VOTOS_NULOS: Null votes
+EG: Votes casted for Edmundo Gonzalez
+NM: Votes casted for Nicolas Maduro
+LM-BERA: Votes casted for the other candidates
+URL: Link to scanned copy of the “acta”
+```
+
+**STEP 0 - Preliminary steps for all problem sets**
+
+A - Render this file as is in your computer. If it does not render correctly, address the rendering problem immediately. \[Skip this if you already did it. Just making sure!\]
+
+B - Load libraries needed. Make sure tidyverse is loaded.
+
+C - Load data set. When loading the data, it's important to always assign it to an object for further use. You have two options. First, you can use the link provided above, which is the easiest and recommended method. Alternatively, you can download the file to your computer and import it by specifying the file's directory. For this first problem set, we have included below the code needed for the first option.
+
+D - Look at the data. Examine the first few rows. Form a mental image of how the data are organized. This might help you visualize what will happen to the data as you code.
+
+```{r}
+#| echo: false
+#| warning: false
+library(tidyverse)
+venezuela <- read_csv("https://www.dropbox.com/scl/fi/6k0rgp4h504f9s06vanl3/RESULTADOS_2024_CSV_V2.csv?rlkey=tkcbyqja4bk0cka6uh7cqfgcy&dl=1")
+head(venezuela)
+view(venezuela)
+```
+
+## Part A - The basics of what happened
+
+1.  How many people voted in the election according to the opposition? Count the number of valid votes.
+
+```{r}
+# Your code here:
+sum(venezuela$VOTOS_VALIDOS, na.rm = TRUE)
+```
+
+------------------------------------------------------------------------
+
+::: answer-box
+*Your answer here:*
+10,887,262 people voted in the election, accounting only for valid votes
+:::
+
+------------------------------------------------------------------------
+
+2.  Create a variable that sums up all the votes from all the candidates other than Maduro and Gonzalez. Call this variable “Other”
+
+```{r}
+# Your code here:
+venezuela <- venezuela |>
+  mutate(Other = rowSums(across(LM:BERA))) |>
+  relocate(Other, .before = URL)
+view(venezuela)
+
+# I used AI to learn how to calculate a sum of the values across columns using the "rowSums()" function to create the variable "other". I also learned how to move columns in the dataset with "relocate()". I found it very helpful for the analysis and used it several times in the problem set.
+# The mistake I made in this exercise was selecting the columns across LM:BERA prior to creating a new variable. By doing so, I overwrote my dataset, which I then had to recover.
+```
+
+3.  Report the percent of votes won by Maduro, Gonzalez and Other according to this data set.
+
+```{r}
+# Your code here:
+
+# percentage won by Gonzalez = 67.0828
+sum(venezuela$EG)/10887262*100
+
+# percentage won by Maduro = 30.45892
+sum(venezuela$NM)/10887262*100
+
+# percentage won by others in total = 2.458286
+sum(venezuela$Other)/10887262*100
+
+sum(venezuela$NM)
+```
+
+------------------------------------------------------------------------
+
+::: answer-box
+*Your answer here:
+percentage of votes won by Gonzalez = 67.0828%
+percentage won by Maduro = 30.45892%
+percentage won by others in total = 2.458286%
+:::
+
+------------------------------------------------------------------------
+
+4.  Assuming that the information in this data set is accurate and that they represent 83% of the votes cast, is it possible for Maduro to have won this election once the remaining votes are counted? Explain briefly \[2-3 sentences\]
+
+------------------------------------------------------------------------
+
+::: answer-box
+*Your answer here:*
+Since 83% of the votes cast equals 10,887,262 votes, and assuming the remaining 17% were not null votes, the maximum number of votes Maduro would theoretically win is (17*10887262)/83 = 2,229,921.
+
+If Maduro won all of the remaining votes, his total would be 3,316,142+2,229,921 = 5,546,063. The percentage of the total votes would be 5,546,063/(10,887,262+2,229,921) = 0.42, which means Maduro could not have won the election even if he won all votes, unaccounted for by the opposition. 
+:::
+
+------------------------------------------------------------------------
+
+5.  Now compute the difference in votes between Gonzalez and Maduro in percentage points for each state in Venezuela. Call this indicator “gap.” For example, if in a state Gonzalez won 62% of the votes and Maduro won 32% of the votes, this gap indicator would be 30 percentage points. If, on the other hand, Gonzalez won 32% of the votes and Maduro won 62%, the gap would be -30 percentage points. Please answer the following questions:
+
+    a.  Report the gap indicator for each state in a format that’s easy for a busy reader to digest. **Choose one (or more) of the following options depending on your level of proficiency with R.**
+
+        1.  Table (easiest): sort states from largest to smallest gap.
+
+        2.  Graph (moderate): think about what graph would be best for a busy reader.
+
+        3.  Map (hardest): See for example \[[this map](https://www.dropbox.com/scl/fi/x0vsyqaoy6fcmox0fne3n/The-Economist-2024-Venezuelan-Election-map.jpg?rlkey=hh49jwg3snc6tsxcg0hk80h07&dl=0))\] from The Economist. To do this, you can get the shapefiles \[[here](https://data.humdata.org/dataset/5b141d29-534f-4f01-a0bc-41e2f375d925/resource/b6cf4bf5-418a-49ad-80ec-b84d0e0e0d41/download/ven_adm_ine_20210223_shp.zip).\].
+
+            ```{r}
+            # Your Code Here
+            ```
+```{r}
+# In the first step I created the "gap" variable. 
+venezuela_summary <- venezuela |>
+  group_by(EDO) |>
+  summarise(
+    state_total = sum(VOTOS_VALIDOS, na.rm = TRUE),
+    EG_total = sum(EG, na.rm = TRUE),
+    NM_total = sum(NM, na.rm = TRUE),
+  ) |>
+  mutate(gap = (EG_total - NM_total)/state_total*100)
+
+# Then I made a table as a beginner-friendly format, which I then used to plot the graph.
+
+venezuela_table <- venezuela_summary |>
+   arrange(desc(gap))|>
+  relocate(gap, .before = state_total)
+head(venezuela_table)
+
+# Next, I made a simple graph to better illustrate the gap across all states in the country. During this task, I got stuck when plotting the states on the x-axis, which became overcrowded and hard to read. 
+
+# By using Google and ChatGPT, I learned that one of the most common tricks is to flip the coordinates of the graph to display the x-values clearly. Also, I learned how to use the function "reorder()" which arranges the values by size rather than by the alphabetic order.
+
+venezuela_graph1 <- venezuela_table |>
+  ggplot() +
+  aes(x = reorder(EDO, gap), y = gap) +
+  geom_col()+
+  coord_flip() +
+  labs ( title = "Presidential Election Results in Venezuela in 2024",
+         x = "State",
+         y = "Percentage Gap between Votes for E. Gonzales vs N. Maduro",
+         caption = "Based on 83% of ballots records") 
+venezuela_graph1
+
+```
+
+    b.  Describe in a short paragraph your findings from the question just above.
+
+        1.  Describe it as best as you can. Type your paragraph here.
+
+            ::: answer-box
+            *Your answer here:*
+            The results of the 2024 presidential elections, based on 83% of ballots collected by the opposition, show that in every state of Venezuela E. Gonzalez was the preferred presidential candidate over N. Maduro. Two major trends are observable: consistency (the graph has no negative x-values, which implies that not a single state chose Maduro over Gonzalez) and median magnitude (except for EDO. SUCRE and EDO> DELTA AMAC, all the other states demonstrate at least 20% votes gap) of approximately 32%. It is worth noting that the results for the capital are among the closest to the median value, which signals a much less radical single-candidate preference than in Tachira or Merida (the two states with the highest gap indicators). 
+            :::
+
+        2.  Ask [PingPong](https://pingpong.hks.harvard.edu/group/462?assistant=1717) -an HKS homegrown AI tool that taps into ChatGPT- for help in improving your paragraph. Copy and paste your prompt and resulting AI advice here. If for some reason this AI tool does not work for you, use one that is available to you (ChatGPT, Claude, etc.)
+
+            ::: answer-box
+            *Paste here the initial prompt you used to ask the AI tool to help you improve your paragraph and resulting AI advice:*
+
+          # For this task, I used ChatGPT because PingPong did not allow me to start a new conversation.
+           Initial Prompt: "You are an experienced editor with a background in data analysis and statistics. Your role is to help me improve my descriptive paragraph (will be attached next) so it is clear, precise, and professional. The short paragraph describes the percentage gap of votes won between two main presidential candidates of the 2024 elections: Edmundo Gonzalez and Nicolas Maduro. A positive gap value means preference for Gonzalez over Maduro".
+           AI Advice: 
+           
+        1. Correctness & Precision
+* Fix the spelling of *“presidenatial”* → **“presidential.”**
+* Replace *“E. Gonzales”* with **“Edmundo González”** for consistency and formality (avoid abbreviations unless already introduced earlier).
+* Correct *“EDO> DELTA AMAC”* → **“EDO. DELTA AMACURO.”**
+
+        2. Clarity of Statistical Meaning
+* Instead of *“graph has no negative x values,”* write something like: **“the data show no negative gaps.”** Readers shouldn’t have to visualize the graph to understand your point.
+* Clarify *“median magnitude”*: say **“the median vote gap is approximately 32%”** before discussing which states are above or below it.
+
+        3. Structure & Flow
+* Break the sentence starting *“The two major trends are observable”* into **two shorter sentences** (one for consistency, one for magnitude). That will improve readability.
+* Move the phrase *“based on the 83% of ballots collected by the opposition”* to the end of the first sentence or set it off with commas to avoid interrupting the main idea.
+
+         4. Tone & Professionalism
+* Change *“It is wort noting”* → **“It is worth noting”** or more formal **“Notably.”**
+* Avoid casual expressions like *“what signals a much less radical once-candidate preference.”* Instead, suggest **“indicating a more moderate preference”** — clearer and more neutral.
+
+          5. Consistency in Geography & Terms
+* Use consistent naming: *“the capital”* → specify **“Caracas”** (or **“the Capital District”**) if that’s the dataset definition.
+* Keep state names with correct accents: **“Táchira”** and **“Mérida.”**
+
+
+            *Paste here a link to the entire conversation with the AI tool. To do this with PingPong, simply go to the conversation and copy and paste link from your browser:*
+            :::
+    https://chatgpt.com/share/68bebe57-0fe8-8006-b15b-e57d94390f17
+
+        3.  Now attach to your AI tool the table/graph/map you produced above and ask it to describe it in one paragraph. Compare it with your paragraph and reflect on whether the two paragraphs are consistent with each other. Copy and paste AI’s paragraph below.
+
+            ::: answer-box
+            *Your answer here:*
+            The chart shows that Edmundo González maintained a consistent lead over Nicolás Maduro across all Venezuelan states, with no state registering a negative vote gap. The largest margins were observed in Táchira and Mérida, where González’s lead exceeded 60%, while Sucre and Delta Amacuro recorded the narrowest advantages, below 20%. Most states fall within a 25–45% gap range, with the capital (Distrito Capital) positioned near the median at roughly 32%. Overall, the distribution highlights both the uniformity of González’s lead nationwide and the regional variation in the intensity of voter preference.
+
+            :::
+
+        4.  Now based on everything above, write your best paragraph. Type your final revised paragraph here.Feel free to first tweak your table/figure/map if needed.
+
+            ::: answer-box
+            *Your answer here:*
+            The data reveals Edmundo González's consistent lead in 2024 Venezuela's presidential elections, based on 83% of the ballots available for this study. Twenty-two out of twenty-four states show a preference of more than 20% in favor of Edmundo González over Nicolás Maduro. The exceptions are Sucre and Delta Amacuro, where the gap between the two candidates was 2.4% and 9.4% respectively. Still, no state demonstrates negative gap values, implying the country's unanimous political support for Edmundo González. The largest margins are observed in the states of Táchira and Mérida with 65.6% and 55.5% respectively. 
+            :::
+
+    c.  Hugo Chavez, Maduro’s predecessor who presided Venezuela from 1998 until his death in 2013, was born in the state of Barinas. Many election observers commented that one of the opposition’s main indicators of success is how they were able to win in traditional Chavista’s strongholds such as Barinas. Calculate the percentage of voting centers in Barinas where Gonzalez won. Does this align with the observations made by election analysts?
+
+
+    ```{r}
+    # Your code here:
+    barinas <- venezuela |>
+      filter(EDO == "EDO. BARINAS") |>
+      mutate(GW = if_else(EG>NM, TRUE, FALSE))  |>
+      relocate(GW, .before = LM)
+    
+    barinas1 <- barinas |>
+      filter(GW == TRUE) 
+    
+    centers_total <- n_distinct(barinas$CENTRO) #612 voting centers in total
+    centers_won <- n_distinct(barinas1$CENTRO) #546 voting centers 
+    
+    gonzalez_won_barinas <- centers_won/centers_total *100 
+    view(gonzalez_won_barinas)
+    # Gonzalez won in 89.2% of the voting centers in Barinas
+    ```
+
+    ::: answer-box
+    *Your answer here:*
+    Given that there are 612 voting centers in the state of Barinas included in the dataframe, and Edmundo Gonzalez won in 546 of them, we conclude that he won 89.2% of the voting centers in a state historically known for support of Hugo Chavez's legacy. This confirms election analysts' observation of a correlation between winning the state of Barinas and winning the nationwide elections.
+    :::
+
+
+    d.  Given recent election history, Maduro was predicted to win in rural areas.
+
+        1.  Think about what data you would ideally like to have (in addition to the data set you already have) that would allow you to assess this prediction. How would you display the results? You don’t need to do the analysis; just explain briefly how it would look like. Feel free to sketch it by hand and upload a picture of it.
+
+            ::: answer-box
+            *Your answer here:*
+            
+            To test that prediction, we would at least need to categorize municipalities as "rural" and "urban" to filter the results to include only rural areas. Moreover, it would also be necessary to establish a rule for assigning each municipality to either the "rural" or "urban" category. 
+            
+            Then, I would calculate the proportion of municipalities where Maduro won and group them by states. Once I learn how to make more complex visualizations, I would use the administrative map of Venezuela to show in which states or cross-state regions Maduro had the most popularity among voters. I would hope that it would help identify geographical or demographic patterns in voters' political views. 
+            
+            :::
+
+        2.  We cannot always have the data we want. When this happens, we have to do our best with the data we have. Now assess this prediction using the data set you have or data that would be easily accessible to you with a simple web search. Do the statistical analysis and display the results in a way that is compelling for someone who wants to know whether Maduro won in rural areas.
+        
+            # I added the column to assign a category (rural or urban) to each state depending on whether its population exceed one million people or not. This is a very arbitrary proxy, which I derived using the data from the citypopulation.de: https://www.citypopulation.de/en/venezuela/cities/
+            
+```{r}
+venezuela_rural <- venezuela |>
+  mutate(URBAN = if_else(EDO %in% c("DTTO. CAPITAL", "EDO. MIRANDA", "EDO. ZULIA","EDO. CARABOBO", "EDO. LARA", "EDO. ANZOATEGUI", "EDO. ARAGUA","EDO. BOLIVAR", "EDO. MONAGAS", "EDO. SUCRE", "EDO. MERIDA", "EDO. TACHIRA", "EDO. PORTUGUESA", "EDO. FALCON"),
+                         "URBAN", "RURAL")) |>
+  relocate(URBAN, .before = COD_MUN)
+
+venezuela_rural <- venezuela_rural |>
+  mutate(Maduro_won = if_else(NM>EG, "TRUE", "FAlSE")) |>
+  relocate(Maduro_won, .before = COD_MUN)
+
+venezuela_rural <- venezuela_rural |>
+  filter(URBAN == "RURAL")
+
+n_distinct(venezuela_rural$EDO) #There are 10 rural states in the data set
+
+venezuela_rural_only <- venezuela_rural |>
+  summarize(
+    n_rows = n(),
+    maduro_rural = sum(Maduro_won == "TRUE", na.rm = TRUE),
+    maduro_votes_rural = n()/sum(Maduro_won == "TRUE", na.rm = TRUE)
+    )
+
+# There are 5394 parishes in the rural states and Maduro won in 892 of them, which brings his victory rate to a rough approximnate of 6.04%
+  
+```
+
+            ::: answer-box
+            *Your answer here:*
+            I used a very rough approximation of what states in Venezuela can be considered predominantly urban or rural. Although each state has both rural and urban municipalities, manual categorization at the level of municipalities and parishes would be too time intensive, given that the task is designed to use "easily accessible information" through web research.
+            I then filtered out all "urban" states and created a new dataset specifically for rural states. Then I introduced a new variable "Maduro_won", which shows in which voting centers Maduro received more votes than Gonzalez.
+            Counting the total number of rows in the filtered dataset and the number of times Maduro won the majority allowed me to calculate the percentage of Maduro's success in rural states.
+            Considering this large inaccuracy, the estimate of 6.04% might be much lower than the real value, because I have omitted some states which may also have rural municipalities, but the overall probability of Maduro's victory is still low.
+            :::
+
+## Part B - Fraud
+
+The data set you used above was collected by the Venezuelan opposition in what can only be described as an extremely well organized and courageous effort led by Maria Corina Machado. Yet the Consejo Nacional Electoral (CNE, Venezuela’s electoral authority) declared that Maduro had won the election.
+
+6.  Given what you know about what was happening in Venezuela before Election Day, what would you have estimated to be the likelihood that Maduro would win the election (where “win” is defined as getting more votes than each of the other candidates)? Note that this is meant to be a subjective likelihood, not one that can be objectively calculated mathematically. Justify your estimate in 2-3 sentences.
+
+    ::: answer-box
+    *Your answer here:*
+    Knowing that the country experienced one of the most severe economic and migration crises during Maduro's tenure, coupled with suspension of a popular opposition candidate, María Corina Machado, from participation in the presidential elections, I would assume Maduro's likelihood of fairly winning the election to be around 25%. I would estimate an even lower probability if Maduro did not have control over the military or the media.
+    :::
+
+7.  Now let’s look at the numbers the CNE reported on election night (below). When you calculate the exact percentages (see last column of table below), these numbers look suspicious. But sometimes numbers that are suspicious are the result of natural statistical fluctuations. We will examine whether this is one of these cases.
+
+    | Candidate | Votes | Percentage reported by CNE | Actual Percentage (not rounded) |
+    |-----------------|:---------------:|:----------------:|:-------------------:|
+    | Nicolas Maduro | 5,150,092 | 51.2% | 51.1999971% |
+    | Edmundo Gonzalez | 4,445,978 | 44.2% | 44.1999989% |
+    | Others | 462,704 | 4.6% | 4.6000039% |
+    | **Totals** | 10,058,774 | 100% | 100.0000000% |
+
+    a.  Read this [blog](https://statmodeling.stat.columbia.edu/2024/07/31/suspicious-data-pattern-in-recent-venezuelan-election/) entry by Andrew Gelman, a leading and influential scholar with a knack for using statistics insightfully in a wide range of contexts.
+
+    b.  After reading it and incorporating what you learned since election night, what do you now think is the probability that Maduro won the election? Use Bayes Rule to explain how you updated your probability. Note: You are not expected to use actual numbers (although feel free to do so), but we want you to look at the formula, adapt it to this context, and explain qualitatively what factors led you to update your probability from the earlier question above.
+
+        ::: answer-box
+        *Your answer here:*
+
+        *1. Bayes Rule formula adapted to this context (i.e., write Bayes Rule formula but instead of having events A and B, use the relevant events for this context):*
+        Let P(M) be a probability of Maduro winning the elections and P(F) is an evidence of fraud (miscalculation of ballots, pressure on CNE, etc.). 
+        
+        P(M|F) = [P(F|M) * P(M)]/[P(F|M)*P(M) + P(F|Mc)*P(Mc)]
+
+        *2. Your revised probability:*
+        
+         My prior was 25%, but after considering the evidence signalling the presence of fraud, I will lower my posterior to less than 20%. This is because such evidence of fraud is more likely if Maduro actually lost the elections and had to manipulate the ballot count.
+
+        *3. Explain your revised probability using adapted Bayes Rule formula:*
+        
+        P(M|F) < P(Mc|F) -> P(Mc) is larger than P(M) given that F (evidence of fraud) has already happened. 
+        :::
+
+    c.  Look at the code proposed by Gelman in his blog:
+
+        1.  Explain what the code is doing in words and why it is informative to assess whether fraud was done in the manner that Zambrano and others speculated.
+
+        ::: answer-box
+        *Your answer here:*
+        The code runs 1,000,000 simulations to produce random number of votes for each candidate: A, B, and Other within the percentages they were assigned (30-70% for A, 1-10% for Other and the rest for B). After getting a million possible variations of votes number for each candidate it divides them by total votes to find the percentages (rounded to 3 decimals). Those percentages are designed to represent the results punlished by CNE. Then the code multiplies those percentages by the total number of votes and rounds the answer to 3 decimals. In the end the code checks if the final number of votes matched the randomly assigned number of votes. The simulations show that the perfect match almost never happened, which implies it is almost impossible to get the numbers that CNE published in real life.
+        To answer this question, I worked with AI to understand what arguments in the function runif(S, 0.30, 0.70)) represented. I also used Google to learn about how fraud is usually investigated in elections, because the blog post was not enough for me to understand why disparity between the percentages would indicate the reverse-engineering of the election results.
+        :::
+
+        2.  Now modify the second line in the code from "S \<- 1e6" to "S \<- 1e8" and explain what you think the result should be given Gelman’s conclusions in the blog.
+
+        ::: answer-box
+        *Your answer here:*
+        Increasing the number of simulations would not produce any substantially different result, the probability of getting equal pairings of starting and ending number of votes is still almost zero.
+        :::
+
+        3.  Now run the code in R with the modified second line. Did you get the number you were expecting? Explain briefly \[2-3 sentences\].
+
+        ```{r}
+        # Your code here:
+
+        ```
+```{r}
+N <- 10058774
+S <- 1e8
+A <- round(N*runif(S, 0.30, 0.70))
+C <- round(N*runif(S, 0.01, 0.10))
+B <- N - A - C
+A_round <- round(round(A/N, 3)*N)
+B_round <- round(round(B/N, 3)*N)
+C_round <- round(round(C/N, 3)*N)
+sum(A_round==A & B_round==B & C_round==C)
+```
+
+        ::: answer-box
+        *Your answer here:*
+        Yes, the result is still zero, so probability is so small that even running 100x more simulations does not change that.
+        :::
+
+8.  After reading Gelman’s blog, another analyst says “This is way too complicated; I have an easier way to prove that there was fraud. How odd is it that the last digit of Maduro’s vote count ends in 2 and Gonzalez ends in 8, which happens to add up to a round number (10)? Not very likely. Prob (Maduro ends in 2)=1/10 and Prob(Gonzalez ends in 8)=1/10. Hence Prob(Maduro ends in 2 **and** Gonzalez ends in 8)=(1/10)\*(1/10)=1/100. Basically just a 1% chance that these results could have arisen by chance. Very unlikely results. Pretty clear evidence of fraud.”
+
+    a.  Compare this reasoning to Gelman’s. What similarities and differences do you observe?
+
+        ::: answer-box
+        *Your answer here:*
+        For me, the are two similarities in their approaches:
+        1) they both assess the probability of candidates' votes fractions adding exactly to 10 or 100%;
+        2) they both find the probability of such "nead adding up to a round number" and come to conclusion that it is very unlikely.
+        
+        The differences are mirroring the similarities:
+        1) the second analyst does not consider the other candidates, while Gelman used 3 categories for Maduro, Gonzalez and Others;
+        2) the second analyst does not rely on simulations to show the difference of probability of getting a perfect "round-up number" vs probability of everything else. 
+        :::
+
+    b.  Do you think this reasoning is sound? If so, why. If not, why not?
+
+        ::: answer-box
+        *Your answer here:*
+        I am not completely confident in my intuition, but I do not believe that the second method is valid. On the one hand, it uses the same argument that rounding up the ratios of large numbers (like the number of votes in the elections) to 1 decimal percentages would rarely sum up to a neat number like 100%. 
+        On the other hand, the calculation is not convincing: any other pair of different digits (2 and 8, 7 and 4, 6 and 3) would have the same probability of 1/10 * 1/10 = 1/100 = 1%. If this was true, this would mean that getting the total percentage of votes equal to 99% or 101% (which happens in fair elections due to rounding-up process) is as probable as getting 100% as total. 
+        To avoid getting to such a misleading conclusion, the analyst would need to compare the probability of having [8 and 2] versus all the other scenarios, which requires running simulations. 
+        :::
+
+9.  \[Optional\] Draft an X post (formerly known as Tweet, max: 280 characters) with one of your key findings from this problem set. Make sure you include some visual aid (a table, graph, map, etc).\* If you would like to share with your classmates, please post on our Slack workspace using the #r-tips channel If you would like to share with the world, please post on X (i.e., tweet) using #API209.
+
+-   If you would like some inspiration for what a great X post might look like, see this [post](https://x.com/Econ_Vzla/status/1819490217658560797) from Omar Zambrano, an MPA/ID graduate from 2004. Need any more evidence that your coding skills could come in handy in the future? :-)
+
+::: answer-box
+*Please type "Done" if you did this part*
+DONE
+:::
+
+# QUESTION 2 -- MEXICAN PENSIONS FOR THE POOR
+
+Read the case study "Providing Pensions for the Poor: Targeting Cash Transfers for the Elderly in Mexico." (linked in class #4 readings in home page of our Canvas site).
+
+(1) Calculate the leakage and undercoverage rates for each of the three options. Show your calculations and report the final results below:
+
+::: answer-box
+**Answer:**
+
+Option 1\
+
+Leakage = P(not poor|enrolled) = P(not poor AND enrolled)/P(enrolled); 
+(4,592,726 * 0.1871 - 1,872,313 * 0.3407)/(4,592,726 * 0.1871) = 0.2576541886 = 25.7%
+
+Option 2\
+Leakage = P(not poor|enrolled) = P(not poor AND enrolled)/P(enrolled); 
+(4,592,726 * 0.3077 - 1,872,313 * 0.4281)/(4,592,726 * 0.3077) = 0.43281381 = 43.3%
+
+Option 3\
+Leakage = P(not poor|enrolled) = P(not poor AND enrolled)/P(enrolled); 
+(4,592,726 * 0.6621 - 1,872,313 * 0.5597)/(4,592,726 * 0.6621) = 0.6553806687 = 65.5%
+
+Option 1\
+Undercoverage = P(not enrolled|poor) = P(not enrolled AND poor)/P(poor) = 1 - 0.3407 = 0.6593 = 65.93%
+
+Option 2\
+Undercoverage = 1 - 0.4281 = 0.5719 = 57.19%
+
+Option 3\
+Undercoverage = 1 - 0.5597 = 0.4403 = 44.03%
+:::
+
+(2) Assess the advantages and disadvantages of each of the options. In doing so, consider the targeting effectiveness as well as other criteria (including political, logistical, and financial). Summarize your findings in the table below.
+
+::: answer-box
+**Answer:**
+
+Option 1\
+Advantages: 
+lowest leakage rate: lowest risk of misallocation of resources intended to help the poorest
+lower transaction costs: people are already registered in the Oportunidades program
+
+Option 2\
+Advantages: 
+medium leakage and undercoverage rates: tradeoff between the effort to reach out to more people in need and misallocation of resources. 
+rural areas: explicit prioritization of localities with smaller populations that are often neglected and/or have less access to the public/health services than urban residents.
+price difference: in rural areas prices tend to be lower, so spending the same budget in people's need there would result in greater marginal utility.
+
+Option 3\
+Advantages: 
+lowest undercoverage rate: opportunity to help the largest proportion people in need of the program
+multideminsional criteria: a more advanced approach to defining poverty that includes people on a more comprehensive basis rather than by only population or geographic disposition.
+
+Option 1\
+Disadvantages: 
+highest undercoverage rate: many people who truly need support will not receive it
+disproportionality: poor people who could not qualify for the Oportunidades willagain be left out
+
+Option 2\
+Disadvantages:
+implementation rigidity: requires equal attention to establishing rigid approaches for identifying the target population, as risks of leakage or undercoverage are equally high.
+systemic challenges: extra financial support may not be enough to resolve systemic supply problems (insufficient number and/or quality of medical workers, poor infrastructure that limits mobility, low internet access, etc.)
+
+Option 3\
+Disadvantages: 
+highest leakage rate: the largest risk of misusing limited resources on people who do not need governmental transfers.
+costs: the most expensive program design as the eligibility criterion incorporates 66.21% of citizens of 70 years or older. 
+:::
+
+(3) Write one crisp paragraph to the Secretary of Social Development (Sedesol) recommending which option should be selected to target the pension program and why. Justify your recommendation using the advantages and disadvantages you identified above. The paragraph should be written in a language that the head of Sedesol (who you can assume is intelligent and well-educated, but not well-versed in statistics) can understand. Enter your answer [**here**](https://forms.gle/ZxTRv89JKLg7Psrc8).
+
+::: answer-box
+*Enter your answers in the link above. Once completed, type "DONE" into this field.*
+:::
+DONE
+------------------------------------------------------------------------
+
+# TIME USE
+
+Please enter in [**this form**](https://forms.gle/wid4uXevZF1LXFpE8) the time you spent on each question. This information will only be used for teaching improvements; **please be candid and accurate**.
+
+::: answer-box
+*Enter your answers in the link above. Once completed, type "DONE" into this field.*
+DONE
+:::
+
+\newpage
+
+**This is a copy of your code. No need to do anything; this is just for our records**
+
+```{r ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+```
